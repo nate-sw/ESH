@@ -42,7 +42,7 @@ main:
          LDI   R30, LOW(msg1<<1)
          RCALL dly
          RCALL init_uart
-         LDI   R17, 3
+         LDI   R17, 2
 
 looptx: 
          CLR   R18
@@ -56,6 +56,10 @@ looptx:
          DEC   R17
          BRNE  looptx
          RJMP  main
+
+
+
+
 
 init_uart:                 
          ldi   R16, 0	      ;always zero (mostly)
@@ -93,8 +97,8 @@ dlynstloop:
 
          RET
 
-msg1:    .db   "Lab 05", $0A, $0D
-msg2:    .db   "Nate Simard-White", $0A, $0D
+banner1: .db   "ASCII Scrambler V1", $0A, $0D, 
+banner2: .db   "by: Nate Simard-White", $0A, $0D, $0A, $0D
 msg3:    .db   "2023-10-16", $0A, $0D
 
 .exit
