@@ -12,6 +12,9 @@
 ;
 ; Refer to doc2512.pdf
 
+.dseg
+
+
 .equ     BAUD  = 25     ;from Table 68 (p.160) & depends on clk speed
 .equ     FRAME = $86    ;select data, parity, stop bit (p.156-158)	     
 .equ     CHAN  = $18    
@@ -24,7 +27,7 @@ reset:   rjmp  init
 
 .org     $20
 init:		          ;used as an entry point for the reset
-	nop
+         NOP
          LDI   R16, LOW(RAMEND)
          OUT   SPL, R16
          LDI   R16, HIGH(RAMEND)
@@ -58,6 +61,13 @@ looptx:
          RJMP  main
 
 
+
+getch:
+         in    R16, UCSRA
+         ANDI  R16, $80
+         BREQ  GETCH
+         IN    R16, UDR
+         RET
 
 
 
@@ -99,6 +109,7 @@ dlynstloop:
 
 banner1: .db   "ASCII Scrambler V1", $0A, $0D, 
 banner2: .db   "by: Nate Simard-White", $0A, $0D, $0A, $0D
-msg3:    .db   "2023-10-16", $0A, $0D
+entline: .db   "Enter line, $0A, $0D, "> "
+modline: .db   0A, $0D, $0A, $0D, "Modified line" 0A, $0D, ">> "
 
 .exit
