@@ -34,8 +34,7 @@ init:
          OUT   SPL, R16
          LDI   R16, HIGH(RAMEND)
          OUT   SPH, R16
-         LDI   R31, HIGH(msg1<<1)
-         LDI   R30, LOW(msg1<<1)
+
 
 init_uart:                 
          LDI   R16, 0	      ;always zero (mostly)
@@ -59,8 +58,6 @@ init_int:
          SEI
 
 main:
-         LDI   R31, HIGH(msg1<<1)
-         LDI   R30, LOW(msg1<<1)
          NOP
          RCALL dly
          RJMP  main
@@ -71,6 +68,7 @@ isr0:
          INC   R16
          CPI   R16, 40
          BREQ  zero_dis_cnt
+         RCALL outch
          OUT   UDR, R16
          STS   tickcnt, R16
 
@@ -81,6 +79,7 @@ done_int0:
 zero_dis_cnt:
          LDI   R16, $30
          STS   tickcnt, R16
+         RCALL outch
          OUT   UDR, R16
          RJMP  done_int0
 
