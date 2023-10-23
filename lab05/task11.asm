@@ -14,8 +14,10 @@
 
 .dseg
 
+entmsg:  .byte 40
+modmsg:  .byte 40
 
-.equ     BAUD  = 25     ;from Table 68 (p.160) & depends on clk speed
+.equ     BAUD  = 6     ;from Table 68 (p.160) & depends on clk speed
 .equ     FRAME = $86    ;select data, parity, stop bit (p.156-158)	     
 .equ     CHAN  = $18    
 
@@ -32,7 +34,11 @@ init:		          ;used as an entry point for the reset
          OUT   SPL, R16
          LDI   R16, HIGH(RAMEND)
          OUT   SPH, R16
-         
+
+         LDI   R27, HIGH(entmsg)
+         LDI   R26, LOW(entmsg)
+         LDI   R29, HIGH(modmsg)
+         LDI   R28, LOW(modmsg)         
 
 init_ports:				
          ldi   R18, 0x0F	  ;set PE2:PE0 as output
@@ -59,6 +65,14 @@ looptx:
          DEC   R17
          BRNE  looptx
          RJMP  main
+
+entermsg:
+         RCALL getch
+         CPI   R16, $0D
+         BREQ  modmsg
+         ST    X+, R16
+
+modmsg:
 
 
 
