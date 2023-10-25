@@ -14,66 +14,87 @@
 
 .dseg
 
-entmsg:  .byte 40
-modmsg:  .byte 40
+entmsg:  .byte 5
 
-.equ     BAUD  = 6     ;from Table 68 (p.160) & depends on clk speed
+.equ     BAUD  = 25     ;from Table 68 (p.160) & depends on clk speed
 .equ     FRAME = $86    ;select data, parity, stop bit (p.156-158)	     
 .equ     CHAN  = $18    
 
 .equ     HI    = $F4
 .equ     LO    = $24
+.equ     CLIM  = 40
 
 .cseg
 reset:   rjmp  init
 
 .org     $20
 init:		          ;used as an entry point for the reset
-         NOP
          LDI   R16, LOW(RAMEND)
          OUT   SPL, R16
          LDI   R16, HIGH(RAMEND)
          OUT   SPH, R16
 
          LDI   R27, HIGH(entmsg)
-         LDI   R26, LOW(entmsg)
-         LDI   R29, HIGH(modmsg)
-         LDI   R28, LOW(modmsg)         
-
-init_ports:				
-         ldi   R18, 0x0F	  ;set PE2:PE0 as output
-         out   DDRE, R18
-;---------------------------------------------------
-;
+         LDI   R26, LOW(entmsg)        
 
 main:
-         LDI   R31, HIGH(msg1<<1)
-         LDI   R30, LOW(msg1<<1)
+         
          RCALL dly
          RCALL init_uart
-         LDI   R17, 2
+         LDI   R17, 3
 
-looptx: 
-         CLR   R18
+msg1init:
+         LDI   R31, HIGH(banner1<<1)
+         LDI   R30, LOW(banner1<<1)
+
+msg1: 
          LPM   R16, Z+
-         ADD   R18, R16
+         CPI   R16, $FF
+         BREQ  entermsg
          RCALL outch
 
-         CPI   R18, $0D
-         BRNE  looptx
-
          DEC   R17
-         BRNE  looptx
-         RJMP  main
+         BRNE  msg1
 
 entermsg:
          RCALL getch
+         RCALL outch
+
+         RCALL chk
+
          CPI   R16, $0D
          BREQ  modmsg
          ST    X+, R16
 
-modmsg:
+         INC   R17
+         CPI   R17, CLIM
+         BREQ  
 
+chk:
+         NOP   ;Check for uppercase, lowercase, convert
+         RET
+
+outinit:
+         LDI   R31, HIGH(modline<<1)
+         LDI   R30, LOW(modline<<1)
+
+out:
+         LPM   R16, Z+
+
+         CPI   R16, $FF
+         BREQ  modout
+
+         RCALL outch
+         RJMP  OUT:
+
+modout:
+         LD    R16, -X
+         RCALL outch
+
+         DEC   R17
+         BRNE  outch
+
+         RJMP  init
 
 
 getch:
@@ -99,8 +120,8 @@ init_uart:
 outch:	
          out   UDR, R16		;txmt char. out the TxD 
 pollsr:		
-         in    R16, UCSRA 	
-         andi  R16, $20   	
+         in    R18, UCSRA 	
+         andi  R18, $20   	
          breq  pollsr
          RET
 
@@ -123,7 +144,7 @@ dlynstloop:
 
 banner1: .db   "ASCII Scrambler V1", $0A, $0D, 
 banner2: .db   "by: Nate Simard-White", $0A, $0D, $0A, $0D
-entline: .db   "Enter line, $0A, $0D, "> "
-modline: .db   0A, $0D, $0A, $0D, "Modified line" 0A, $0D, ">> "
+entline: .db   "Enter line", $0A, $0D, ">", $FF
+modline: .db   0A, $0D, $0A, $0D, "Modified line", $0A, $0D, ">>"
 
 .exit
