@@ -35,7 +35,9 @@ init:		          ;used as an entry point for the reset
          OUT   SPH, R16
 
          LDI   R27, HIGH(entmsg)
-         LDI   R26, LOW(entmsg)        
+         LDI   R26, LOW(entmsg)
+         
+         LDI   R19, $20
 
 main:
          
@@ -63,15 +65,20 @@ entermsg:
          RCALL chk
 
          CPI   R16, $0D
-         BREQ  modmsg
+         BREQ  out
          ST    X+, R16
 
          INC   R17
-         CPI   R17, CLIM
-         BREQ  
+         RJMP  entermsg
 
 chk:
-         NOP   ;Check for uppercase, lowercase, convert
+         CPI   R16, $41 ;Compare to A
+         BRLO  chkdone
+         CPI   R16, $5B ;Compare to [, Character after Z
+         BRSH  chkdone
+
+         ADD   R16, R19 ;Change Uppercase to Lowercase
+chkdone:
          RET
 
 outinit:
@@ -81,18 +88,18 @@ outinit:
 out:
          LPM   R16, Z+
 
-         CPI   R16, $FF
+         CPI   R16, $FE
          BREQ  modout
 
          RCALL outch
-         RJMP  OUT:
+         RJMP  out
 
 modout:
          LD    R16, -X
          RCALL outch
 
          DEC   R17
-         BRNE  outch
+         BRNE  modout
 
          RJMP  init
 
@@ -145,6 +152,6 @@ dlynstloop:
 banner1: .db   "ASCII Scrambler V1", $0A, $0D, 
 banner2: .db   "by: Nate Simard-White", $0A, $0D, $0A, $0D
 entline: .db   "Enter line", $0A, $0D, ">", $FF
-modline: .db   0A, $0D, $0A, $0D, "Modified line", $0A, $0D, ">>"
+modline: .db   $0A, $0D, $0A, $0D, "Modified line", $0A, $0D, ">>", $FE
 
 .exit
