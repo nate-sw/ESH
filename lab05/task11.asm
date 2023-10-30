@@ -53,6 +53,7 @@ msg1:
          LPM   R16, Z+
          CPI   R16, $FF
          BREQ  entermsg
+         
          RCALL outch
 
          DEC   R17
