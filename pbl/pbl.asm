@@ -17,6 +17,11 @@
 .equ     HI    = $F4
 .equ     LO    = $24
 
+
+.equ     BAUD  = 25     ;from Table 68 (p.160) & depends on clk speed
+.equ     FRAME = $86    ;select data, parity, stop bit (p.156-158)	     
+.equ     CHAN = 0x18    ;channel enable (Tx only for now)
+
 init0:         ;Initialize stack pointer.
          LDI   R16, LOW(RAMEND)
          OUT   SPL, R16
@@ -49,6 +54,18 @@ init_lcd:
          STS   ADRR1, R16 
          RCALL dly
 
+init_uart:                 
+         ldi   R16, 0	      ;always zero (mostly)
+         out   UBRRH, R16    
+         ldi   R16, BAUD	 
+         out   UBRRL, R16    ;config. Tx baud rate w/equ value 
+         ldi   R16, CHAN      
+         out   UCSRB, R16    ;enable transmit only (see p.156)
+         ldi   R16, FRAME         
+         out   UCSRC, R16    ;config. frame elements 
+
+
+
 init_msg:
          LDI   R31, HIGH(initmsg<<1)
          LDI   R30, LOW(initmsg<<1)
@@ -61,7 +78,7 @@ main:
          BREQ  lcd_chline
          CPI   R17, $20
          BREQ  init_ld
-         RCALL lcd_puts
+         RCALL both_puts
          RCALL dly
          RJMP  main
 
@@ -79,6 +96,10 @@ fini:
 
 lcd_puts:
          STS   ADRR2, R17
+
+both_puts:
+         STS   ADRR2, R17
+         OUT   UDR, R17
 
 dly:
          LDI   R29, HI
@@ -100,36 +121,19 @@ ld_main:
          RCALL dly
          RJMP  ld_main
 
-;ld_lshift:
-;         LDI   R18, 3
-;         LDI   R16, $08
-;         STS   ADRR1, R16
-;         RCALL dly
-;         DEC   R18
-;         BRNE  ld_lshift
 
-;ld_prog:
-;         LDI   R18, 3
-;         LDI   R17, $FF
-;         RCALL lcd_puts
-;         RCALL dly
-;         DEC   R18
-;         BRNE  ld_prog
 
 init_ld:
-         LDI   R18, 3
          LDI   R16, $0C
          STS   ADRR1, R16
          RCALL dly
          
          LDI   R31, HIGH(lcdldmsg<<1)
          LDI   R30, LOW(lcdldmsg<<1)
+
+
          RJMP  ld_main
 
 
-
-
-         
-
-initmsg:       .db   "DatAQMon", $0D, "v1.0", $0D
+initmsg:       .db   "DatAQMon_v1.0", $0D, "2032574", $20
 lcdldmsg:      .db   $20, $2E, $A5, $DF, $2A, $00 ;Ka boom!
