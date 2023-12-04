@@ -11,75 +11,66 @@
 
 
 .equ     BUSON = $80
-.equ     VAL   = $38
-.equ     ADRR1 = $2000
-.equ     ADRR2 = $2100
 .equ     HI    = $F4
 .equ     LO    = $24
 
 
-.equ     BAUD  = 25     ;from Table 68 (p.160) & depends on clk speed
-.equ     FRAME = $86    ;select data, parity, stop bit (p.156-158)	     
-.equ     CHAN = 0x18    ;channel enable (Tx only for now)
+;passed to termio.inc
+.equ FCPU_L  = 1000000 ;used by termio rtn 
+.equ BAUD  = 2400    ;desired baud rate
 
-init0:         ;Initialize stack pointer.
-         LDI   R16, LOW(RAMEND)
+
+init0:
+         LDI   R16, LOW(RAMEND) ;Initialize stack pointer.
          OUT   SPL, R16
          LDI   R16, HIGH(RAMEND)
          OUT   SPH, R16
 
-init1:
+         RCALL j_init_uart
+
+init_bus:
          LDI   R16, BUSON
          OUT   MCUCR, R16
          
 
 init_lcd:
-         LDI   R16, VAL
-         STS   ADRR1, R16
-         RCALL dly
+         RCALL dly50msi
 
-         LDI   R16, VAL
-         STS   ADRR1, R16
-         RCALL dly
+         RCALL fctn_set
+         RCALL dly50usi
 
-         LDI   R16, $0F ;Turn display on, cursor and position on
-         STS   ADRR1, R16
-         RCALL dly
+         RCALL fctn_set
+         RCALL dly50usi
 
-         LDI   R16, $01 ;clear display
-         STS   ADRR1, R16 
-         RCALL dly
+         RCALL lcd_on
+         RCALL dly50usi
 
-         LDI   R16, $06 ;entry mode
-         STS   ADRR1, R16 
-         RCALL dly
+         RCALL lcd_clr
+         RCALL dly2ms
 
-init_uart:                 
-         ldi   R16, 0	      ;always zero (mostly)
-         out   UBRRH, R16    
-         ldi   R16, BAUD	 
-         out   UBRRL, R16    ;config. Tx baud rate w/equ value 
-         ldi   R16, CHAN      
-         out   UCSRB, R16    ;enable transmit only (see p.156)
-         ldi   R16, FRAME         
-         out   UCSRC, R16    ;config. frame elements 
+         RCALL ent_md
+         RCALL dly50usi
 
-
-
+         
 init_msg:
          LDI   R31, HIGH(initmsg<<1)
          LDI   R30, LOW(initmsg<<1)
+
          LDI   R18, 2
+         LDI   R20, 0
+         LDI   R17, $0A
+         RCALL term_puts
+         RCALL dly50usi
 
 main:    
-
          LPM   R17, Z+
-         CPI   R17, $0D
+         CPI   R17, $00
          BREQ  lcd_chline
          CPI   R17, $20
          BREQ  init_ld
-         RCALL both_puts
-         RCALL dly
+         RCALL lcd_puts
+         RCALL term_puts
+         RCALL dly500ms
          RJMP  main
 
 
@@ -88,52 +79,61 @@ lcd_chline:
          BREQ  main
          LDI   R16, $C0
          STS   ADRR1, R16
-         RCALL dly
+
+         LDI   R17, $0A
+         RCALL term_puts
+         RCALL dly50usi
          RJMP  main
 
 fini:
          RJMP  fini
 
-lcd_puts:
-         STS   ADRR2, R17
+; insert lcd_puts here for debuging
 
-both_puts:
-         STS   ADRR2, R17
+term_puts:
          OUT   UDR, R17
-
-dly:
-         LDI   R29, HI
-         LDI   R28, LO
-         
-
-dlynstloop:    
-         SBIW  R29:R28, 1
-         BRNE  dlynstloop
          RET
 
 
+; insert delays here for debuging
+
+
+init_ld:
+         LDI   R16, $0C
+         STS   ADRR1, R16
+
+
+         RCALL dly50usi
+         
+         LDI   R31, HIGH(lcdldmsg<<1)
+         LDI   R30, LOW(lcdldmsg<<1)
 
 ld_main:
          LPM   R17, Z+
          CPI   R17, $00
          BREQ  fini
          RCALL lcd_puts
-         RCALL dly
-         RJMP  ld_main
+         RCALL term_puts
 
-
-
-init_ld:
-         LDI   R16, $0C
-         STS   ADRR1, R16
-         RCALL dly
          
-         LDI   R31, HIGH(lcdldmsg<<1)
-         LDI   R30, LOW(lcdldmsg<<1)
-
-
+         RCALL dly1s
          RJMP  ld_main
 
 
-initmsg:       .db   "DatAQMon_v1.0", $0D, "2032574", $20
-lcdldmsg:      .db   $20, $2E, $A5, $DF, $2A, $00 ;Ka boom!
+
+
+
+
+j_init_uart:
+         RJMP  init_uart
+
+         
+
+initmsg:       .db   $0D, "DatAQMon_v1.0", $00, $0D,  "2032574", $20
+lcdldmsg:      .db   $20, "LOAD"
+
+
+.include "delays.inc"
+.include "lcdio.inc"
+.include "termio.inc"   ;routines to do terminal io using AVR's USART
+.exit
