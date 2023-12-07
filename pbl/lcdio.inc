@@ -9,22 +9,32 @@
 .equ     ADRR1 = $2000
 .equ     ADRR2 = $2100
 
-fctn_set:               ;function set
-         LDI   R16, $38 
-         RJMP  con_ret
+
+lcd_init:
+fctn_set:               
+         LDI   R16, $38 ;function set
+         RJMP  lcdio_ret
 
 lcd_on:
-         LDI   R16, $0F ;Turn display on, cursor and position on
-         RJMP  con_ret
+         LDI   R16, $0C ;Turn display on, cursor and position on
+         RJMP  lcdio_ret
 
 lcd_clr:
          LDI   R16, $01 ;clear display
-         RJMP  con_ret
+         RJMP  lcdio_ret
 
-ent_md:
+lcd_ent_md:
          LDI   R16, $06 ;entry mode
-         RJMP  con_ret
+         RJMP  lcdio_ret
 
+
+lcd_line_up:
+         LDI   R16, $80
+         RJMP  lcdio_ret
+
+lcd_line_dw:
+         LDI   R16, $C0
+         RJMP  lcdio_ret
 
 
 
@@ -33,6 +43,6 @@ lcd_puts:
          RET
 
 
-con_ret:
+lcdio_ret:
          STS   ADRR1, R16
          RET

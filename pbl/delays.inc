@@ -51,5 +51,10 @@ dly1s:
          LDI   R20, 20
          RJMP  dly50msi
          
+
+dly10s: ;USE ONLY FOR TESTING & TROUBLESHOOTING
+         LDI   R20, 200
+         RJMP  dly50msi
+
 dlyret:
          RET
