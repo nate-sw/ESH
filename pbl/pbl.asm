@@ -7,6 +7,10 @@
 .include "m8515def.inc"
 ;
 ; Refer to doc2512.pdf
+; Changelog:
+;
+; 2023-12-11:  Reworked program startup and LCD display code.
+
 
 .dseg
 min:	.byte 1
@@ -14,10 +18,12 @@ tenmin:	.byte 1
 hrs:	.byte 1
 tenhrs:	.byte 1
 
+samples:.byte 1
+
 .cseg
 
 .equ     BUSON = $80
-
+.equ     ADCADR = $1000
 
 
 ;passed to termio.inc
@@ -30,10 +36,9 @@ init0:
          OUT   SPL, R16
          LDI   R16, HIGH(RAMEND)
          OUT   SPH, R16
-
-         LDI   R16, $00 
+         LDI   R16, $FE 
          OUT   DDRB, R16 ;config PB0 as input
-
+         OUT   DDRD, R16 ;config PD0 as input
          RCALL j_init_uart
 
 init_bus:
@@ -53,175 +58,142 @@ init_lcd:
          RCALL dly2ms
          RCALL lcd_ent_md
          RCALL dly50usi
-
          
-init_msg:
-         LDI   R31, HIGH(initmsg<<1)
-         LDI   R30, LOW(initmsg<<1)
+init_msg0:
+         LDI   R31, HIGH(msg0<<1)
+         LDI   R30, LOW(msg0<<1)
+         RCALL dly2ms
+         CLR   R16
 
-         LDI   R18, 2
-         ;LDI   R20, 0
-         LDI   R17, $0A
-         RCALL term_puts
+startup:
+         RCALL newl
+         CLR   R16
+         RCALL lcd_line_up
+         RCALL msg_dsp
+         RCALL newl
+         CLR   R16
+         RCALL lcd_line_dw
+         LDI   R31, HIGH(msg1<<1)
+         LDI   R30, LOW(msg1<<1)
          RCALL dly50usi
+         RCALL msg_dsp
+         RCALL dly4s
+
+         RCALL  clr ;Use only for troubleshooting startup message
 
 main:    
-         LPM   R17, Z+
-         CPI   R17, $00
-         BREQ  lcd_chline
-         CPI   R17, $20
-         BREQ  init_ld
+         RJMP  node_msg
+
+
+
+
+msg_dsp:
+         LPM   R16, Z+
+         CPI   R16, $00
+         BREQ  msg_ret
          RCALL lcd_puts
-         RCALL term_puts
-         RCALL dly500ms
-         RJMP  main
+         RCALL putchar
+         
+         
+         RCALL dly10ms
+         RCALL dly50msi
+         RJMP  msg_dsp
 
-
-lcd_chline:
-         DEC   R18
-         BREQ  main ;changes lines once $00 is read twice
-         RCALL lcd_line_dw
-
-         LDI   R17, $0A
-         RCALL term_puts
-         RCALL dly50usi
-         RJMP  main
+msg_ret:
+         RET
 
 ; insert lcd_puts here for debuging
 
-term_puts:
-         OUT   UDR, R17
-         RET
+
 
 
 ; insert delays here for debuging
 
-
-init_ld:
-         LDI   R31, HIGH(lcdldmsg<<1)
-         LDI   R30, LOW(lcdldmsg<<1)
-
-ld_main:
-         LPM   R17, Z+
-         CPI   R17, $00
-         BREQ  svr_init ;PB0_chk
-         RCALL lcd_puts
-         RCALL term_puts
-
-         
-         RCALL dly1s
-         RJMP  ld_main
-
-
-PB0_chk:
-;         IN    R16, PINB
-;         ANDI  R16, $01
-
-;         CPI   R16, $01
-;         BREQ  nde_init
-
-
-svr_init:
-         
-         LDI   R31, HIGH(svrmsg<<1)
-         LDI   R30, LOW(svrmsg<<1)
-         RCALL lcd_line_up
-         
-svr_top:
-         LPM   R17, Z+
-         CPI   R17, $00
-         BREQ  svr_bottom
-         RCALL lcd_puts
-         RCALL term_puts
+node_msg:
+         LDI   R31, HIGH(ndemsg<<1)
+         LDI   R30, LOW(ndemsg<<1)
          RCALL dly50usi
-         RJMP  svr_top
+         RCALL newl
+         RCALL lcd_line_up         
+         RCALL msg_dsp
 
-svr_bottom:
-         RCALL lcd_line_dw
-         LDI   R16, 0
-         STS   min, R16
-         STS   tenmin, R16
-         STS   hrs, R16
-         STS   tenhrs, R16
+         ;RJMP  node_fini ;Use only for troubleshooting node start message
+
+node_init:
+         LDI   R27, HIGH(samples)
+         LDI   R26, LOW(samples)
+         LDI   R21, 255 ;Number of samples to be taken
+         CLR   R22 ;Below trim count
+         CLR   R23 ;Above trim count
+         CLR   R25
          
 
-
-svr_loop:
-         RCALL lcd_line_dw
-         RCALL dly50usi
-         LDS   R17, tenhrs
-         RCALL lcd_puts
-         RCALL dly50usi
-         LDS   R17, hrs
-         RCALL lcd_puts
-         RCALL dly50usi
-         LDS   R17, tenmin
-         RCALL lcd_puts
-         RCALL dly50usi
-         LDS   R17, min
-         RCALL lcd_puts
-         RJMP  minloop
-
-
-thrsloop:
-         RCALL svr_loop
-         STS   hrs, R16
-         LDS   R23, tenhrs
+node:
+         RCALL dly2ms
+         STS   ADCADR, R25
+         IN    R24, PIND
+         NOP
+         LDS   R24, ADCADR
+         ST    x+, R24
+         CPI   R24, $80 ;Default trim value - Change later to add logic
+         BRLO  ltrim
          INC   R23
-         CPI   R23, 2
-         BREQ  thrs20loop
-         STS   hrs, R23
-         RJMP  minloop
+         DEC   R21
+         BRNE  node 
+         RJMP  node_fini
 
-thrs20loop:
-         STS   hrs, R23
-         CPI   R22, 4
-         BREQ  svr_bottom
-
-hrsloop:
-         RCALL svr_loop
-         STS   tenmin, R16
-         LDS   R22, hrs
+ltrim:
          INC   R22
-         CPI   R22, 10
-         BREQ  thrsloop
-         STS   hrs, R22
-         RJMP  minloop
+         DEC   R21
+         BRNE  node 
+         RJMP  node_fini
 
-tminloop:
-         RCALL svr_loop
-         STS   min, R16
-         LDS   R21, tenmin
-         INC   R21
-         CPI   R21, 6
-         BREQ  hrsloop
-         STS   tenmin, R21
-         RJMP  minloop
+node_fini:
+         RCALL lcd_line_dw
+         RCALL newl
+         MOV   R16, R22
+         RCALL hex2asc
+         MOV   R25, R17
+         MOV   R24, R16
 
-minloop:
-         RCALL svr_loop
-         LDS   R20, min
-         INC   R20
-         CPI   R20, 10
-         BREQ  tminloop
-         STS   min, R20
-         RCALL dly10s
-         RJMP  minloop
+         MOV   R16, R23
+         RCALL hex2asc
+         MOV   R18, R16
+         
+         LDI   R16, 'L'
+         RCALL puts
+         RCALL lcd_puts
+         LDI   R16, ':'
+         RCALL puts
+         RCALL lcd_puts   
+         MOV   R16, R25
+         RCALL puts
+         RCALL lcd_puts
+         MOV   R16, R24
+         RCALL puts
+         RCALL lcd_puts
+         LDI   R16, $20
+         RCALL puts
+         RCALL lcd_puts
+         LDI   R16, 'H'
+         RCALL puts
+         RCALL lcd_puts
+         LDI   R16, ':'
+         RCALL puts
+         RCALL lcd_puts   
+         MOV   R16, R17
+         RCALL puts
+         RCALL lcd_puts
+         MOV   R16, R18
+         RCALL puts
+         RCALL lcd_puts
 
-
-;nde_init:
-;         RCALL lcd_clr
-;         RCALL dly2ms
-
-
-;nde_mode:
-
-
+         RJMP  fini
 
 clr:
          RCALL lcd_clr
          RCALL dly2ms
-
+         RET
 
 fini:
          RJMP  fini
@@ -230,16 +202,21 @@ fini:
 j_init_uart:
          RJMP  init_uart
 
-         
 
-initmsg:       .db   $0D, "DatAQMon_v1.0", $00, $0D,  "2032574", $20
-lcdldmsg:      .db   $20, "LOAD", $00
 
-svrmsg:        .db "SVR#", $00
+msg0:    .db   " DatAQMon_v1.0", $00
+
+msg1:    .db   " 2032574",  $00
+
+
+svrmsg:  .db   "SVR#", $00
+ndemsg:  .db   " NODE>", $00
+
 
 
 
 .include "delays.inc"
 .include "lcdio.inc"
 .include "termio.inc"   ;routines to do terminal io using AVR's USART
+.include "numio.inc" 
 .exit

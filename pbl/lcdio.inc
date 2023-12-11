@@ -39,7 +39,7 @@ lcd_line_dw:
 
 
 lcd_puts:
-         STS   ADRR2, R17
+         STS   ADRR2, R16
          RET
 
 

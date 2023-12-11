@@ -1,0 +1,155 @@
+        ;
+; Filename: junked code.txt
+; Description: This document contains code which was either removed from the program due to unnecessary/redundant 
+; or as a temporary storage point during troubleshooting.
+;
+; Author: nsw
+;
+; Changelog:
+; 2023-12-10: Document created
+; 2023-12-10: Supervisor code removed from program to troubleshoot and rework.
+; 2023-12-11: "LOAD" message removed from program
+ 
+;The dump - This code was removed from the main program, unlikely to be added back.
+
+init_ld:
+         LDI   R31, HIGH(lcdldmsg<<1)
+         LDI   R30, LOW(lcdldmsg<<1)
+
+ld_msg:
+         LPM   R17, Z+
+         CPI   R17, $00
+         BREQ  clr ;only used to troubleshoot startup message
+         RCALL lcd_puts
+         RCALL term_puts
+
+         
+         RCALL dly1s
+         RJMP  ld_msg
+
+
+         RJMP  clr ;only used to troubleshoot startup message
+
+lsgmsg:  .db   "LOAD", $00
+
+
+
+termnewl:
+         LDI   R16, $0D
+         OUT   UDR, R16
+         LDI   R16, $0A
+         OUT   UDR, R16
+
+         RET
+
+
+term_puts:
+         OUT   UDR, R16
+         RET
+
+
+
+
+;Temp storage - All code below is being kept to be reworked and added back into the program later.
+svr_init:
+         LDI   R31, HIGH(svrmsg<<1)
+         LDI   R30, LOW(svrmsg<<1)
+         RCALL lcd_line_up
+         
+svr_top:
+         LPM   R17, Z+
+         CPI   R17, $00
+         BREQ  svr_bottom
+         RCALL lcd_puts
+         RCALL term_puts
+         RCALL dly50usi
+         RJMP  svr_top
+
+svr_bottom:
+         RCALL lcd_line_dw
+         LDI   R16, 0
+         STS   min, R16
+         STS   tenmin, R16
+         STS   hrs, R16
+         STS   tenhrs, R16
+         
+
+
+svr_loop:
+         RCALL lcd_line_dw
+         RCALL dly50usi
+         LDS   R17, tenhrs
+         RCALL lcd_puts
+         RCALL dly50usi
+         LDS   R17, hrs
+         RCALL lcd_puts
+         RCALL dly50usi
+         LDS   R17, tenmin
+         RCALL lcd_puts
+         RCALL dly50usi
+         LDS   R17, min
+         RCALL lcd_puts
+         RJMP  minloop
+
+
+thrsloop:
+         RCALL svr_loop
+         STS   hrs, R16
+         LDS   R23, tenhrs
+         INC   R23
+         CPI   R23, 2
+         BREQ  thrs20loop
+         STS   hrs, R23
+         RJMP  minloop
+
+thrs20loop:
+         STS   hrs, R23
+         CPI   R22, 4
+         BREQ  svr_bottom
+
+hrsloop:
+         RCALL svr_loop
+         STS   tenmin, R16
+         LDS   R22, hrs
+         INC   R22
+         CPI   R22, 10
+         BREQ  thrsloop
+         STS   hrs, R22
+         RJMP  minloop
+
+tminloop:
+         RCALL svr_loop
+         STS   min, R16
+         LDS   R21, tenmin
+         INC   R21
+         CPI   R21, 6
+         BREQ  hrsloop
+         STS   tenmin, R21
+         RJMP  minloop
+
+minloop:
+         RCALL svr_loop
+         LDS   R20, min
+         INC   R20
+         CPI   R20, 10
+         BREQ  tminloop
+         STS   min, R20
+         RCALL dly10s
+         RJMP  minloop
+
+
+;nde_init:
+;         RCALL lcd_clr
+;         RCALL dly2ms
+
+
+;nde_mode:
+
+
+
+PB0_chk:
+;         IN    R16, PINB
+;         ANDI  R16, $01
+
+;         CPI   R16, $01
+;         BREQ  nde_init
