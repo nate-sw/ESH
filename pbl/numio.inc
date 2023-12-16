@@ -1,8 +1,8 @@
 ;
 ; Filename: numio.inc
 ; 
-; The following code supplied to the Fall 2018 243-513-DW students for educational/study
-; purposes. The use of these routines, in whole or in part, without proper reference to 
+; The following code supplied to the Fall 2018 243-513-DW students for education
+; purposes. The use of these routines, in whole or in part, without proper refer
 ; origin is a violation of ISEP regarding Academic Integrity and Plagerism.
 ;
 ;Description: Subroutine framework for use in the project (do not modify) 

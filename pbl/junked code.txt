@@ -47,6 +47,55 @@ term_puts:
          OUT   UDR, R16
          RET
 
+;2023-12-12:
+h2asc:
+        CPI   R16, 200
+        BRSH  val200
+        CPI   R16, 100
+        BRSH  val100
+        LDI   R19, $30
+
+h2a_start:
+        clr   R17
+        mov   R15,R16      ;make copy of hex number
+        lsr   R16          ;shift ms nyble to ls
+        lsr   R16     
+        lsr   R16
+h2asc_conv_a:
+        andi  R16,$0F     ;mask off upper nyble
+        CPI   R16,$0A     ;check if valid bcd range
+        BRSH  h2asc_sub8
+        ldi   R18,$30   
+        add   R16,R18     ;add $30 to adjust to ascii 0 - 9
+
+
+h2asc_conv_b:
+        push  R16		   ;save msd ascii
+        mov   R16,R15
+        inc   R17
+        cpi   R17,1
+        breq  h2asc_conv_a
+        pop  R17           ;R17:R16 contain msd:lsd ascii numbers
+        pop  R16
+        ret
+
+
+val100:
+        LDI   R19, $31
+        SUBI  R16, 100
+        RJMP  h2a_start
+
+val200:
+        LDI   R19, $32
+        SUBI  R16, 200
+        RJMP  h2a_start
+
+h2asc_sub8:
+        SUBI  R16, 8
+        RJMP  h2asc_conv_a
+
+
+
 
 
 
