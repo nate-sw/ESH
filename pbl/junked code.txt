@@ -47,7 +47,7 @@ term_puts:
          OUT   UDR, R16
          RET
 
-;2023-12-12:
+
 h2asc:
         CPI   R16, 200
         BRSH  val200

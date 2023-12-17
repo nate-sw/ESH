@@ -1,0 +1,193 @@
+;
+; Filename: node.inc
+; Description: Subroutine used for the Node mode
+;
+; Author: nsw
+;
+; Changelog:
+; 2023-12-17: File created
+
+error_invalid_entry:
+    LDI   R31, HIGH(error0x20<<1)
+    LDI   R30, LOW(error0x20<<1)
+    RCALL dly50usi
+    RCALL newl
+    RCALL newl
+
+    RCALL puts
+    RCALL dly50usi
+    RCALL newl
+
+error_ret_msg:
+    LDI   R31, HIGH(errorret<<1)
+    LDI   R30, LOW(errorret<<1)
+    RCALL puts
+    RCALL dly50usi
+error_ret:
+    RCALL n_getch
+    CPI   R16, $0D
+    BRNE  error_ret
+
+
+node_msg:
+    LDI   R31, HIGH(ndemsg<<1)
+    LDI   R30, LOW(ndemsg<<1)
+    RCALL dly50usi
+    LDI   R16, $0C	    
+    RCALL putchar
+
+    RCALL lcd_line_up         
+    RCALL msg_dsp
+
+
+node_init:
+    LDI   R27, HIGH(samples)
+    LDI   R26, LOW(samples)
+    LDI   R21, $FE ;Number of samples to be taken
+    CLR   R22 ;Below trim count
+    CLR   R23 ;Above trim count
+    LDI   R25, $01 ;junk code
+
+
+
+ntermchk:
+    RCALL n_getch
+    RCALL n_outch
+    CPI   R16, $41
+    BREQ  node
+    ;CPI   R16, $54
+    ;BREQ  change_trim
+    CPI   R16, $00
+    BRNE  error_invalid_entry
+    RJMP  ntermchk
+
+
+node:
+    STS   ADCADR, R25
+
+adcping:
+    IN    R24, PINB
+    ANDI  R24, $04
+    BREQ  adcping
+
+nodecont:
+    LDS   R24, $1000
+    ST    x+, R24
+    LDI   R16, 1
+    OUT   PORTE, R16
+    NOP
+    NOP
+    NOP
+    CLR   R16
+    OUT   PORTE, R16
+
+
+    CPI   R24, $80 ;Default trim value - Change later to add logic
+    BRLO  ltrim
+    
+    RCALL dly2ms
+
+    ;RCALL dly200ms ;Used for debugging
+
+
+    INC   R23
+    DEC   R21
+    BRNE  node 
+    RJMP  node_fini
+
+ltrim: ;lower than trim level
+    RCALL dly2ms
+    INC   R22
+    DEC   R21
+    BRNE  node 
+    RJMP  node_fini
+
+node_fini:
+    RCALL lcd_line_dw
+    RCALL newl
+
+    MOV   R16, R22
+    RCALL hex2asc
+    MOV   R5, R17
+    MOV   R4, R16
+
+    MOV   R16, R23
+    RCALL hex2asc
+    MOV   R7, R17
+    MOV   R6, R16
+    
+    LDI   R16, 'L'
+    RCALL lcd_puts
+    OUT   UDR, R16
+    RCALL dly50msi
+    LDI   R16, ':'
+    RCALL lcd_puts
+    OUT   UDR, R16
+    RCALL dly50msi
+    MOV   R16, R4
+    RCALL lcd_puts
+    OUT   UDR, R16
+    RCALL dly50msi
+    MOV   R16, R5
+    RCALL lcd_puts
+    OUT   UDR, R16
+    RCALL dly50msi
+    LDI   R16, $20
+    RCALL lcd_puts
+    OUT   UDR, R16
+    RCALL dly50msi
+    LDI   R16, 'H'
+    RCALL lcd_puts
+    OUT   UDR, R16
+    RCALL dly50msi
+    LDI   R16, ':'
+    RCALL lcd_puts
+    OUT   UDR, R16
+    RCALL dly50msi
+    MOV   R16, R6
+    RCALL lcd_puts
+    OUT   UDR, R16
+    RCALL dly50msi
+    MOV   R16, R7
+    RCALL lcd_puts
+    OUT   UDR, R16
+    RCALL dly50msi
+
+    RJMP  node_init
+node_ret:
+    RET
+
+
+change_trim:
+    LDI   R31, HIGH(trimmesg0<<1)
+    LDI   R30, LOW(trimmesg0<<1)
+    RCALL dly50usi
+    RCALL newl
+
+    RCALL puts
+
+    LDS   R16, trimlvl
+    RCALL hex2asc
+
+    OUT   UDR, R16
+    RCALL dly50msi
+    MOV   R16, R17
+    OUT   UDR, R16
+    RCALL dly50msi
+
+
+enter_new_trim:
+    LDI   R31, HIGH(trimmesg1<<1)
+    LDI   R30, LOW(trimmesg1<<1)
+    RCALL dly50usi
+    RCALL newl
+
+    RCALL puts
+
+
+
+
+
+
+
+
