@@ -13,14 +13,11 @@
 
 
 .dseg
-min:	.byte 1
-tenmin:	.byte 1
-hrs:	.byte 1
-tenhrs:	.byte 1
+trimlvl:.byte 1
 
 samples:.byte 1
 
-trimlvl:.byte 1
+
 
 .cseg
 
@@ -68,16 +65,20 @@ init_trim:
     STS trimlvl, R16
 
          
-         
-
-
-main:    
+init1:
     RCALL pgm_start
 
-    RCALL  clr ;Use only for troubleshooting startup message
+main:    
+    IN    R24, PINB
+    ANDI  R24, $01
+    BRNE  j_node_ret
 
-    RCALL  node_msg
+    RCALL node_mode
 
+
+c_node:
+    RCALL node_mode 
+    RJMP  main
 
 
 
@@ -129,7 +130,15 @@ msg1:    .db   "2032574",  $00
 
 
 svrmsg:  .db   $0D, "SUPERVISOR# ", $00
+
 ndemsg:  .db   $0D, "NODE>", $00
+
+ndefmsg: .db   $0D, "New sample set captured:", $00
+
+samplesummsg: .db   $0D, "To view the sum of the captured samples, press 'S'", $00
+
+ndesmsg: .db   $0D, "Sum of collected samples [XXXX]: ", $00
+
 
 trimmesg0:.db   $0D, "Current trim level is [XX]: ", $00
 trimmesg1:.db   $0D, "Set new trim level [XX]: ", $00
@@ -143,10 +152,12 @@ error0x10:.db   $0D, "[Error 0x10] - Invalid entry. Please insert a valid Superv
 
 error0x20:.db   $0D, "[Error 0x20] - Invalid entry. Please insert a valid Node command.", $00
 error0x21:.db   $0D, "[Error 0x21] - Invalid value. Please insert a hex value between 0x00 and 0xFF.", $00
+error0x22:.db   $0D, "[Error 0x22] - Missing sample. Please take a sample before using the sum command.", $00
+error0x23:.db   $0D, "[Error 0x23] - Invalid trim cmd. Please reload the page before inputting a new trim level.", $00
 
-errorlcd:.db   $0D, "ERROR - CHECK TERM", $00
+errorlcd:.db   $0D, "ERROR CHECK TRM", $00
 
-errorret: .db   $0D, "Press Enter to return to the previous menu.", $00
+errorret: .db   $0D, "Press Enter to return to the previous menu. ", $00
 
 
 

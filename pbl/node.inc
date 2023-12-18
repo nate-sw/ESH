@@ -6,35 +6,11 @@
 ;
 ; Changelog:
 ; 2023-12-17: File created
+; 2023-12-18: Node function completed, all parts functional
 
-error_invalid_entry:
-    LDI   R31, HIGH(error0x20<<1)
-    LDI   R30, LOW(error0x20<<1)
-    RJMP  error_code_print
-
-
-
-error_code_print:
-    RCALL dly50usi
-    RCALL newl
-    RCALL newl
-
-    RCALL puts
-    RCALL dly50usi
-    RCALL newl
-
-error_ret_msg:
-    LDI   R31, HIGH(errorret<<1)
-    LDI   R30, LOW(errorret<<1)
-    RCALL puts
-    RCALL dly50usi
-error_ret:
-    RCALL n_getch
-    CPI   R16, $0D
-    BRNE  error_ret
-
-
+node_mode:
 node_msg:
+    RCALL  clr
     LDI   R31, HIGH(ndemsg<<1)
     LDI   R30, LOW(ndemsg<<1)
     RCALL dly50usi
@@ -48,7 +24,7 @@ node_msg:
 node_init:
     LDI   R27, HIGH(samples)
     LDI   R26, LOW(samples)
-    LDI   R21, $FE ;Number of samples to be taken
+    LDI   R21, $FF ;Number of samples to be taken
     CLR   R22 ;Below trim count
     CLR   R23 ;Above trim count
     LDI   R25, $01 ;junk code
@@ -58,16 +34,34 @@ node_init:
 ntermchk:
     RCALL n_getch
     RCALL n_outch
-    CPI   R16, $41
+    CPI   R16, $41 ;ascii for 'A'
     BREQ  node
-    CPI   R16, $54
+    CPI   R16, $54 ;ascii for 'T'
     BREQ  j_change_trim
+    CPI   R16, $53 ;ascii for 'S'
+    BREQ  j_no_sample
     CPI   R16, $00
-    BRNE  error_invalid_entry
+    BRNE  j_invalid_entry
+    IN    R24, PINB
+    ANDI  R24, $01
+    BRNE  j_node_ret
     RJMP  ntermchk
+
+j_node_ret:
+    RJMP  node_ret
+
 
 j_change_trim:
     RJMP change_trim
+
+j_no_sample:
+    RCALL lcd_error_dsp
+    RJMP error_no_sample
+
+j_invalid_entry:
+    RCALL lcd_error_dsp
+    RJMP  error_invalid_entry
+
 
 node:
     STS   ADCADR, R25
@@ -88,8 +82,8 @@ nodecont:
     CLR   R16
     OUT   PORTE, R16
 
-
-    CPI   R24, $80 ;Default trim value - Change later to add logic
+    LDS   R3, trimlvl
+    CP    R24, R3 
     BRLO  ltrim
     
     RCALL dly2ms
@@ -112,6 +106,13 @@ ltrim: ;lower than trim level
 node_fini:
     RCALL lcd_line_dw
     RCALL newl
+    RCALL newl
+    LDI   R31, HIGH(ndefmsg<<1)
+    LDI   R30, LOW(ndefmsg<<1)
+    RCALL dly50usi  
+    RCALL puts
+    RCALL newl
+
 
     MOV   R16, R22
     RCALL hex2asc
@@ -159,8 +160,47 @@ node_fini:
     RCALL lcd_puts
     OUT   UDR, R16
     RCALL dly50msi
+    RCALL newl
+    
 
-    RJMP  node_init
+node_end_msg:
+    LDI   R31, HIGH(samplesummsg<<1)
+    LDI   R30, LOW(samplesummsg<<1)
+    RCALL dly50usi
+    RCALL newl
+
+    RCALL puts
+
+    RCALL newl
+    LDI   R31, HIGH(errorret<<1)
+    LDI   R30, LOW(errorret<<1)
+    RCALL puts
+    RCALL dly50usi
+
+node_end_chk:
+    RCALL n_getch
+    RCALL n_outch
+    CPI   R16, $53 ;ascii for 'S'
+    BREQ  j_sum
+    CPI   R16, $0D ;ascii CR
+    BREQ  j_node_msg
+    CPI   R16, $00
+    BRNE  jj_invalid_entry
+    IN    R24, PINB
+    ANDI  R24, $01
+    BRNE  ode_ret
+    RJMP  node_end_chk
+
+j_node_msg:
+    RJMP  node_msg
+
+j_sum:
+    RJMP startsum
+
+jj_invalid_entry:
+    RCALL lcd_error_dsp
+    RJMP  error_invalid_trim
+
 node_ret:
     RET
 
@@ -179,8 +219,7 @@ change_trim:
 
     OUT   UDR, R16
     RCALL dly50msi
-    MOV   R16, R17
-    OUT   UDR, R16
+    OUT   UDR, R17
     RCALL dly50msi
 
 
@@ -198,15 +237,15 @@ getch_trim:
     RCALL n_getch
     RCALL dly2ms
     
-    CPI   R16, $30
-    
-    BRLO  error_invalid_hex
-    CPI   R16, $3A
-    BRSH  chk_new_trim
     CPI   R16, $00
     BREQ  getch_trim
+    CPI   R16, $30
+    BRLO  j_invalid_hex
+    CPI   R16, $3A
+    BRSH  chk_new_trim
+    
     CPI   R16, $0D
-    BREQ  error_invalid_hex
+    BREQ  j_invalid_hex
     OUT   UDR, R16
     
     SUBI  R16, $30
@@ -215,11 +254,17 @@ getch_trim:
 
 chk_new_trim:
     CPI   R16, $41
-    BRLO  error_invalid_hex
+    BRLO  j_invalid_hex
     CPI   R16, $47
-    BRSH  chk_new_trim
+    BRSH  j_invalid_hex
     OUT   UDR, R16
     SUBI  R16, $37
+    RJMP  save_trim
+
+    j_invalid_hex:
+    OUT   UDR, R16
+    RCALL lcd_error_dsp
+    RJMP  error_invalid_hex
     
 
 save_trim:
@@ -244,19 +289,105 @@ trim_ret:
 
 trim_msv:
     MOV R4, R16
-    LSL R4
-    LSL R4
-    LSL R4
-    LSL R4
+    LSL   R4
+    LSL   R4
+    LSL   R4
+    LSL   R4
 
     RJMP  getch_trim
 
+startsum:
+    LDI   R27, HIGH(samples)
+    LDI   R26, LOW(samples)
+    LDI   R21, $FF ;Number of samples to be taken
+    CLR   R0
+    CLR   R1
+    CLR   R2
+    CLR   R3
+
+sumloop:
+    LD    R0, x+
+    LD    R1, x+
+    ADD   R2, R0
+    ADC   R3, R1
+    DEC   R21
+    BRNE  sumloop
+
+sumdone:  
+    LDI   R31, HIGH(ndesmsg<<1)
+    LDI   R30, LOW(ndesmsg<<1)
+    RCALL dly50usi
+    RCALL newl
+    RCALL newl
+
+    RCALL puts
+
+    MOV   R16, R3 ;converts sum to ascii
+    RCALL hex2asc
+    MOV   R5, R17
+    MOV   R4, R16
+    MOV   R16, R2
+    RCALL hex2asc
+    MOV   R7, R17
+    MOV   R6, R16
+
+    MOV   R16, R4
+    OUT   UDR, R16
+    RCALL dly50msi
+    MOV   R16, R5
+    OUT   UDR, R16
+    RCALL dly50msi
+    MOV   R16, R6
+    OUT   UDR, R16
+    RCALL dly50msi
+    MOV   R16, R7
+    OUT   UDR, R16
+    RCALL dly50msi
+
+    CLR   R27
+    CLR   R26
+    RCALL newl
+    RJMP  error_ret_msg
 
 
-error_invalid_hex:  ;Note 2023-12-17 - This doesn't seem to work, try to make a .inc for the errors are restructure the code.
+
+error_invalid_hex:  
     LDI   R31, HIGH(error0x21<<1)
     LDI   R30, LOW(error0x21<<1)
     RJMP  error_code_print
 
+error_invalid_entry:
+    LDI   R31, HIGH(error0x20<<1)
+    LDI   R30, LOW(error0x20<<1)
+    RJMP  error_code_print
 
+error_no_sample:
+    LDI   R31, HIGH(error0x22<<1)
+    LDI   R30, LOW(error0x22<<1)
+    RJMP  error_code_print
+
+error_invalid_trim:
+    LDI   R31, HIGH(error0x23<<1)
+    LDI   R30, LOW(error0x23<<1)
+    RJMP  error_code_print
+
+error_code_print:
+    RCALL dly50usi
+    RCALL newl
+    RCALL newl
+    RCALL puts
+    RCALL dly50usi
+
+error_ret_msg:
+    RCALL newl
+    LDI   R31, HIGH(errorret<<1)
+    LDI   R30, LOW(errorret<<1)
+    RCALL puts
+    RCALL dly50usi
+
+error_ret:
+    RCALL n_getch
+    CPI   R16, $0D
+    BRNE  error_ret
+    RJMP  node_msg
 

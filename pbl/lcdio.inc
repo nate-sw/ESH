@@ -32,3 +32,16 @@ lcd_puts:
 lcdio_ret:
     STS   ADRR1, R16
     RET
+
+
+lcd_msg_dsp:
+    LPM   R16, Z+
+    CPI   R16, $00
+    BREQ  lcd_msg_ret
+    RCALL lcd_puts
+    RCALL dly10ms
+    RCALL dly50msi
+    RJMP  msg_dsp
+
+lcd_msg_ret:
+    RET
