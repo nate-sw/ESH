@@ -188,7 +188,7 @@ node_end_chk:
     BRNE  jj_invalid_entry
     IN    R24, PINB
     ANDI  R24, $01
-    BRNE  ode_ret
+    BRNE  node_ret
     RJMP  node_end_chk
 
 j_node_msg:

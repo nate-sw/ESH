@@ -71,9 +71,9 @@ init1:
 main:    
     IN    R24, PINB
     ANDI  R24, $01
-    BRNE  j_node_ret
+    BRNE  c_node
 
-    RCALL node_mode
+   
 
 
 c_node:
