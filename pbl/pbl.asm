@@ -132,7 +132,9 @@ svrmsg:  .db   $0D, "SUPERVISOR# ", $00
 ndemsg:  .db   $0D, "NODE>", $00
 
 trimmesg0:.db   $0D, "Current trim level is [XX]: ", $00
-trimmesg1:.db   $0D, "Set new trim level [XX] and hit Enter key: ", $00
+trimmesg1:.db   $0D, "Set new trim level [XX]: ", $00
+trimset: .db   $0D, "New Trim level set. Press Enter to return to previous menu", $00
+
 
 
 error0x10:.db   $0D, "[Error 0x10] - Invalid entry. Please insert a valid Supervisor command", $00
@@ -145,6 +147,8 @@ error0x21:.db   $0D, "[Error 0x21] - Invalid value. Please insert a hex value be
 errorlcd:.db   $0D, "ERROR - CHECK TERM", $00
 
 errorret: .db   $0D, "Press Enter to return to the previous menu.", $00
+
+
 
 .include "delays.inc"
 .include "lcdio.inc"

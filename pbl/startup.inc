@@ -35,7 +35,8 @@ pgm_start:
         CLR   R16
 
 ;startup:
-        RCALL newl
+        LDI   R16, $0C	    
+        RCALL putchar
         CLR   R16
         RCALL lcd_line_up
         RCALL msg_dsp

@@ -10,6 +10,11 @@
 error_invalid_entry:
     LDI   R31, HIGH(error0x20<<1)
     LDI   R30, LOW(error0x20<<1)
+    RJMP  error_code_print
+
+
+
+error_code_print:
     RCALL dly50usi
     RCALL newl
     RCALL newl
@@ -55,12 +60,14 @@ ntermchk:
     RCALL n_outch
     CPI   R16, $41
     BREQ  node
-    ;CPI   R16, $54
-    ;BREQ  change_trim
+    CPI   R16, $54
+    BREQ  j_change_trim
     CPI   R16, $00
     BRNE  error_invalid_entry
     RJMP  ntermchk
 
+j_change_trim:
+    RJMP change_trim
 
 node:
     STS   ADCADR, R25
@@ -158,6 +165,7 @@ node_ret:
     RET
 
 
+
 change_trim:
     LDI   R31, HIGH(trimmesg0<<1)
     LDI   R30, LOW(trimmesg0<<1)
@@ -179,15 +187,76 @@ change_trim:
 enter_new_trim:
     LDI   R31, HIGH(trimmesg1<<1)
     LDI   R30, LOW(trimmesg1<<1)
+    LDI   R18, 2
     RCALL dly50usi
     RCALL newl
 
     RCALL puts
 
+getch_trim:
+    RCALL dly2ms
+    RCALL n_getch
+    RCALL dly2ms
+    
+    CPI   R16, $30
+    
+    BRLO  error_invalid_hex
+    CPI   R16, $3A
+    BRSH  chk_new_trim
+    CPI   R16, $00
+    BREQ  getch_trim
+    CPI   R16, $0D
+    BREQ  error_invalid_hex
+    OUT   UDR, R16
+    
+    SUBI  R16, $30
+    RJMP  save_trim
+
+
+chk_new_trim:
+    CPI   R16, $41
+    BRLO  error_invalid_hex
+    CPI   R16, $47
+    BRSH  chk_new_trim
+    OUT   UDR, R16
+    SUBI  R16, $37
+    
+
+save_trim:
+    DEC   R18
+    BRNE  trim_msv
+    ADD   R16, R4
+    STS   trimlvl, R16
+
+trim_set:
+    RCALL newl
+    LDI   R31, HIGH(trimset<<1)
+    LDI   R30, LOW(trimset<<1)
+    RCALL dly50usi
+    RCALL newl
+
+    RCALL puts
+trim_ret:
+    RCALL n_getch
+    CPI   R16, $0D
+    BRNE  trim_ret
+    RJMP  node_msg
+
+trim_msv:
+    MOV R4, R16
+    LSL R4
+    LSL R4
+    LSL R4
+    LSL R4
+
+    RJMP  getch_trim
 
 
 
-
+error_invalid_hex:  ;Note 2023-12-17 - This doesn't seem to work, try to make a .inc for the errors are restructure the code.
+    LDI   R31, HIGH(error0x21<<1)
+    LDI   R30, LOW(error0x21<<1)
+    RJMP  error_code_print
 
 
 
