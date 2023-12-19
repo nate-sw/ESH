@@ -31,16 +31,9 @@ samples:.byte 1
 .equ     MinutesAddr = 0x2150 ; Memory address for minutes
 .equ     HoursAddr   = 0x2151 ; Memory address for hours
 
-
-
-
 ;passed to termio.inc
 .equ FCPU_L  = 1000000 ;used by termio rtn 
 .equ BAUD  = 2400    ;desired baud rate
-
-
-
-
 
 init0:
     LDI   R16, LOW(RAMEND) ;Initialize stack pointer.
@@ -72,8 +65,13 @@ main:
     IN    R24, PINB
     ANDI  R24, $01
     BRNE  c_node
+    RJMP  c_svr
+
 
    
+c_svr:
+    RCALL clr
+    RJMP main
 
 
 c_node:
@@ -129,7 +127,7 @@ msg0:    .db   $0D, "DatAQMon_v1.0", $00
 msg1:    .db   "2032574",  $00
 
 
-svrmsg:  .db   $0D, "SUPERVISOR# ", $00
+svrmsg:  .db   $0D, "SUPERVISOR#", $00
 
 ndemsg:  .db   $0D, "NODE>", $00
 

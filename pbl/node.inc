@@ -32,7 +32,13 @@ node_init:
 
 
 ntermchk:
+    IN    R24, PINB
+    ANDI  R24, $01
+    BREQ  j_node_ret
     RCALL n_getch
+    IN    R24, PINB
+    ANDI  R24, $01
+    BREQ  j_node_ret
     RCALL n_outch
     CPI   R16, $41 ;ascii for 'A'
     BREQ  node
@@ -42,9 +48,7 @@ ntermchk:
     BREQ  j_no_sample
     CPI   R16, $00
     BRNE  j_invalid_entry
-    IN    R24, PINB
-    ANDI  R24, $01
-    BRNE  j_node_ret
+    
     RJMP  ntermchk
 
 j_node_ret:
@@ -178,7 +182,13 @@ node_end_msg:
     RCALL dly50usi
 
 node_end_chk:
+    IN    R24, PINB
+    ANDI  R24, $01
+    BREQ  node_ret
     RCALL n_getch
+    IN    R24, PINB
+    ANDI  R24, $01
+    BREQ  node_ret
     RCALL n_outch
     CPI   R16, $53 ;ascii for 'S'
     BREQ  j_sum
@@ -186,9 +196,6 @@ node_end_chk:
     BREQ  j_node_msg
     CPI   R16, $00
     BRNE  jj_invalid_entry
-    IN    R24, PINB
-    ANDI  R24, $01
-    BRNE  node_ret
     RJMP  node_end_chk
 
 j_node_msg:
@@ -233,6 +240,9 @@ enter_new_trim:
     RCALL puts
 
 getch_trim:
+    IN    R24, PINB
+    ANDI  R24, $01
+    BREQ  node_ret
     RCALL dly2ms
     RCALL n_getch
     RCALL dly2ms
