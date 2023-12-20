@@ -10,7 +10,8 @@
 svr_mode:
 
 svr_msg:
-    RCALL  clr
+    RCALL systime
+    RCALL  clrs
     LDI   R31, HIGH(svrmsg<<1)
     LDI   R30, LOW(svrmsg<<1)
     RCALL dly50usi
@@ -20,8 +21,11 @@ svr_msg:
     RCALL lcd_line_up         
     RCALL msg_dsp
 
+    RCALL systime
+
 
 stermchk:
+    RCALL systime
     IN    R24, PINB
     ANDI  R24, $01
     BRNE  j_svr_ret
@@ -38,8 +42,8 @@ stermchk:
     ;BREQ  j_no_sample
     ;CPI   R16, $00
     ;BRNE  j_invalid_entry
-    
-    RJMP  svr_time
+    RCALL  systime
+    RJMP   svr_time
 
     j_svr_ret:
     RJMP   svr_ret
@@ -49,27 +53,24 @@ svr_time:
     RCALL lcd_line_dw
 
 
-    LDS   R16, hrs
+    LDS   R16, hrscnt
+    RCALL hex2bcd8
     RCALL hex2asc
     MOV   R5, R17
     MOV   R4, R16
 
-    LDS   R16, min
+    LDS   R16, mincnt
+    RCALL hex2bcd8
     RCALL hex2asc
     MOV   R7, R17
     MOV   R6, R16
     
-    LDS   R16, sec
-    RCALL hex2bcd8
-    MOV   R8, R16
-
-    LDS   R16, sec
-    RCALL hex2asc
-    MOV   R10, R17
-    MOV   R9, R16
-
-
-
+    ;LDS   R16, seccnt
+    ;RCALL hex2bcd8
+    ;MOV   R8, R16
+    ;RCALL hex2asc
+    ;MOV   R10, R17
+    ;MOV   R9, R16
 
     LDI   R16, 'H'
     RCALL lcd_puts
@@ -112,7 +113,6 @@ svr_time:
     RCALL lcd_puts
     MOV   R16, R8
     RCALL seven_seg_puts
-    RCALL dly10ms
     MOV   R16, R9
     RCALL lcd_puts
     RCALL dly10ms
@@ -120,6 +120,7 @@ svr_time:
     RCALL lcd_puts
     RCALL dly10ms
 
+    ;RCALL dly1s ;Only for troubleshooting, remove later
     RJMP  stermchk
 
 

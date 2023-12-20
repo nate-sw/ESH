@@ -14,21 +14,24 @@
 
 
 .dseg
-trimlvl:.byte 1
+trimlvl: .byte 1
 
-samples:.byte 1
+samples: .byte 1
 
-tickcnt:.byte 1
-sec:    .byte 1
-min:    .byte 1
-hrs:    .byte 1
+seccnt:  .byte 1
+mincnt:  .byte 1
+hrscnt:  .byte 1
+
+tickcnt: .byte 1
+
+
 
 .cseg
-;RJMP init0
-;RJMP  isr0
+reset: RJMP init0
+int_0: RJMP  isr0
+.org $20
 
-
-.equ     BUSON = $80
+.equ     BUSON = $82
 .equ     ADCADR = $1000 ; Memory address for ADC
 .equ     SVSEGADR = $1800 ; Memory address for 7 segment displays
 .equ     ADRR1 = $2000 ; Memory address for LCD's control
@@ -41,17 +44,13 @@ hrs:    .byte 1
 init0:
     CLR   R16
     STS   tickcnt, R16
-    STS   sec, R16
-    STS   min, R16
-    STS   hrs, R16
+    STS   seccnt, R16
+    STS   mincnt, R16
+    STS   hrscnt, R16
 
     ; Enable External Interrupt 0
-    ldi   R16, (1<<INT0)
+    ldi   R16, $40
     out   GICR, R16
-
-    ; Set interrupt trigger on falling edge
-    LDI   R16, (1<<ISC01)
-    OUT   MCUCR, R16
 
 
     LDI   R16, LOW(RAMEND) ;Initialize stack pointer.
@@ -80,24 +79,20 @@ init1:
     RCALL pgm_start
     SEI ;Enables interrupt
 
-main:    
+main:
+    RCALL  systime
     IN    R24, PINB
     ANDI  R24, $01
     BRNE  c_node
     RJMP  c_svr
 
-
-   
 c_svr:
     RCALL svr_mode
     RJMP main
 
-
 c_node:
     RCALL node_mode 
     RJMP  main
-
-
 
 msg_dsp:
     LPM   R16, Z+
@@ -116,12 +111,9 @@ msg_ret:
 
 ; insert lcd_puts here for debuging
 
-
-
-
 ; insert delays here for debuging
 
-clr:
+clrs:
     RCALL lcd_clr
     RCALL dly2ms
     RET
@@ -138,72 +130,85 @@ j_init_uart:
 j_hex2asc:
     RJMP  hex2asc
 
+systime:
+    PUSH  R16
+
+secchk:
+    LDS   R16, seccnt
+    CPI   R16, 60
+    BRSH  minutesinc
+    RJMP  systime_ret
+
+minutesinc:
+    CLR   R16
+    STS   seccnt, R16
+    LDS   R16, mincnt
+    INC   R16
+    CPI   R16, 60
+    BREQ  hoursinc
+    STS   mincnt, R16
+    RJMP  systime_ret
+
+hoursinc:
+    CLR   R16
+    STS   mincnt, R16
+    LDS   R16, hrscnt
+    INC   R16
+    CPI   R16, 99
+    BREQ  hoursinc
+    STS   hrscnt, R16
+    RJMP  systime_ret
+
+hours_clr:
+    CLR   R16
+    STS   hrscnt, R16
+    RJMP  systime_ret
+
+systime_ret:
+    POP   R16
+    RET
+
 
 isr0: ;This is the interrupt for the system clock
+    PUSH  R16
+    IN    R16, SREG
     PUSH  R16
     LDS   R16, tickcnt
     INC   R16
     CPI   R16, 60
-    BREQ  secondsinc
+    BRSH  sec_int0
     STS   tickcnt, R16
-
-done_isr0:
+    POP   R16
+    OUT   SREG, R16
     POP   R16
     RETI
 
 
-secondsinc:
+sec_int0:
     CLR   R16
     STS   tickcnt, R16
-    LDS   R16, tickcnt
+    LDS   R16, seccnt
     INC   R16
-    CPI   R16, 60
-    BREQ  minutesinc
-    STS   min, R16
-    RJMP  done_isr0
+    STS   seccnt, R16
+    POP   R16
+    OUT   SREG, R16
+    POP   R16
+    RETI
 
-minutesinc:
-    CLR   R16
-    STS   sec, R16
-    LDS   R16, min
-    INC   R16
-    CPI   R16, 60
-    BREQ  hoursinc
-    STS   min, R16
-    RJMP  done_isr0
 
-hoursinc:
-    CLR   R16
-    STS   min, R16
-    LDS   R16, hrs
-    INC   R16
-    CPI   R16, 99
-    BREQ  hoursinc
-    STS   hrs, R16
-    RJMP  done_isr0
 
-hours_clr:
-    CLR   R16
-    STS   hrs, R16
-    RJMP  done_isr0
 
 
 
 msg0:    .db   $0D, "DatAQMon_v1.0", $00
 msg1:    .db   "2032574",  $00
-
-
 svrmsg:  .db   $0D, "SUPERVISOR#", $00
 
+
 ndemsg:  .db   $0D, "NODE>", $00
-
 ndefmsg: .db   $0D, "New sample set captured:", $00
-
 samplesummsg: .db   $0D, "To view the sum of the captured samples, press 'S'", $00
-
 ndesmsg: .db   $0D, "Sum of collected samples [XXXX]: ", $00
-
-
 trimmesg0:.db   $0D, "Current trim level is [XX]: ", $00
 trimmesg1:.db   $0D, "Set new trim level [XX]: ", $00
 trimset: .db   $0D, "New Trim level set. Press Enter to return to previous menu", $00
@@ -219,7 +224,7 @@ error0x21:.db   $0D, "[Error 0x21] - Invalid value. Please insert a hex value be
 error0x22:.db   $0D, "[Error 0x22] - Missing sample. Please take a sample before using the sum command.", $00
 error0x23:.db   $0D, "[Error 0x23] - Invalid trim cmd. Please reload the page before inputting a new trim level.", $00
 
-errorlcd:.db   $0D, "ERROR CHECK TRM", $00
+errorlcd:.db   "ERROR CHECK TERM", $00
 
 errorret: .db   $0D, "Press Enter to return to the previous menu. ", $00
 

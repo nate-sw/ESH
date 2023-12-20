@@ -10,7 +10,7 @@
 
 node_mode:
 node_msg:
-    RCALL  clr
+    RCALL  clrs
     LDI   R31, HIGH(ndemsg<<1)
     LDI   R30, LOW(ndemsg<<1)
     RCALL dly50usi
@@ -396,8 +396,13 @@ error_ret_msg:
     RCALL dly50usi
 
 error_ret:
+    IN    R24, PINB
+    ANDI  R24, $01
+    BREQ  jj_node_ret
     RCALL n_getch
     CPI   R16, $0D
     BRNE  error_ret
     RJMP  node_msg
 
+jj_node_ret:
+    RJMP  node_ret
