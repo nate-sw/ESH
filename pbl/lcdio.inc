@@ -45,3 +45,8 @@ lcd_msg_dsp:
 
 lcd_msg_ret:
     RET
+
+
+seven_seg_puts: ;Yes I know this isnt an LCD, but I didnt want to make another include file for the 7 segment so its going in with the LCD.
+    STS   SVSEGADR, R16
+    RET

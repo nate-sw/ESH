@@ -10,6 +10,7 @@
 ; Changelog:
 ;
 ; 2023-12-11:  Reworked program startup and LCD display code.
+; 2023-12-18:  Node mode completed.
 
 
 .dseg
@@ -17,9 +18,15 @@ trimlvl:.byte 1
 
 samples:.byte 1
 
-
+tickcnt:.byte 1
+sec:    .byte 1
+min:    .byte 1
+hrs:    .byte 1
 
 .cseg
+;RJMP init0
+;RJMP  isr0
+
 
 .equ     BUSON = $80
 .equ     ADCADR = $1000 ; Memory address for ADC
@@ -27,15 +34,26 @@ samples:.byte 1
 .equ     ADRR1 = $2000 ; Memory address for LCD's control
 .equ     ADRR2 = $2100 ; Memory address for LCD's data
 
-.equ     SecondsAddr = 0x1850 ; Memory address for seconds
-.equ     MinutesAddr = 0x2150 ; Memory address for minutes
-.equ     HoursAddr   = 0x2151 ; Memory address for hours
-
 ;passed to termio.inc
 .equ FCPU_L  = 1000000 ;used by termio rtn 
 .equ BAUD  = 2400    ;desired baud rate
 
 init0:
+    CLR   R16
+    STS   tickcnt, R16
+    STS   sec, R16
+    STS   min, R16
+    STS   hrs, R16
+
+    ; Enable External Interrupt 0
+    ldi   R16, (1<<INT0)
+    out   GICR, R16
+
+    ; Set interrupt trigger on falling edge
+    LDI   R16, (1<<ISC01)
+    OUT   MCUCR, R16
+
+
     LDI   R16, LOW(RAMEND) ;Initialize stack pointer.
     OUT   SPL, R16
     LDI   R16, HIGH(RAMEND)
@@ -60,6 +78,7 @@ init_trim:
          
 init1:
     RCALL pgm_start
+    SEI ;Enables interrupt
 
 main:    
     IN    R24, PINB
@@ -70,7 +89,7 @@ main:
 
    
 c_svr:
-    RCALL clr
+    RCALL svr_mode
     RJMP main
 
 
@@ -120,6 +139,53 @@ j_hex2asc:
     RJMP  hex2asc
 
 
+isr0: ;This is the interrupt for the system clock
+    PUSH  R16
+    LDS   R16, tickcnt
+    INC   R16
+    CPI   R16, 60
+    BREQ  secondsinc
+    STS   tickcnt, R16
+
+done_isr0:
+    POP   R16
+    RETI
+
+
+secondsinc:
+    CLR   R16
+    STS   tickcnt, R16
+    LDS   R16, tickcnt
+    INC   R16
+    CPI   R16, 60
+    BREQ  minutesinc
+    STS   min, R16
+    RJMP  done_isr0
+
+minutesinc:
+    CLR   R16
+    STS   sec, R16
+    LDS   R16, min
+    INC   R16
+    CPI   R16, 60
+    BREQ  hoursinc
+    STS   min, R16
+    RJMP  done_isr0
+
+hoursinc:
+    CLR   R16
+    STS   min, R16
+    LDS   R16, hrs
+    INC   R16
+    CPI   R16, 99
+    BREQ  hoursinc
+    STS   hrs, R16
+    RJMP  done_isr0
+
+hours_clr:
+    CLR   R16
+    STS   hrs, R16
+    RJMP  done_isr0
 
 
 
@@ -162,10 +228,10 @@ errorret: .db   $0D, "Press Enter to return to the previous menu. ", $00
 .include "delays.inc"
 .include "lcdio.inc"
 .include "startup.inc"
-.include "num.inc" 
 .include "node.inc"
 .include "termcmd.inc"
 .include "errors.inc"
+.include "svr.inc"
 
 .include "termio.inc"   ;routines to do terminal io using AVR's USART
 .include "numio.inc" 
