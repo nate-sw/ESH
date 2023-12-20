@@ -51,8 +51,6 @@ stermchk:
 
 svr_time:
     RCALL lcd_line_dw
-
-
     LDS   R16, hrscnt
     RCALL hex2bcd8
     RCALL hex2asc
@@ -65,12 +63,12 @@ svr_time:
     MOV   R7, R17
     MOV   R6, R16
     
-    ;LDS   R16, seccnt
-    ;RCALL hex2bcd8
-    ;MOV   R8, R16
-    ;RCALL hex2asc
-    ;MOV   R10, R17
-    ;MOV   R9, R16
+    LDS   R16, seccnt
+    RCALL hex2bcd8
+    MOV   R8, R16
+    RCALL hex2asc
+    MOV   R10, R17
+    MOV   R9, R16
 
     LDI   R16, 'H'
     RCALL lcd_puts
@@ -113,6 +111,7 @@ svr_time:
     RCALL lcd_puts
     MOV   R16, R8
     RCALL seven_seg_puts
+    RCALL dly10ms
     MOV   R16, R9
     RCALL lcd_puts
     RCALL dly10ms
@@ -120,7 +119,6 @@ svr_time:
     RCALL lcd_puts
     RCALL dly10ms
 
-    ;RCALL dly1s ;Only for troubleshooting, remove later
     RJMP  stermchk
 
 
