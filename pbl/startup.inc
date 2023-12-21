@@ -51,3 +51,55 @@ pgm_start:
 
 
         RET
+
+n_getch_start:
+    DEC   R21
+    BREQ  j_init2
+    RCALL dly1s
+    IN    R16, UCSRA
+    ANDI  R16, $80
+    BREQ  n_getch_start
+    IN    R16, UDR
+    CPI   R16, $45 ;ascii for 'E'
+    BREQ  cookiejar
+    RJMP  n_getch_start
+
+j_init2:
+    RJMP  init2
+
+cookiejar:
+    LDI   R16, $0C	    
+    RCALL putchar
+    RCALL n_outch
+    LDI   R31, HIGH(cookie0<<1)
+    LDI   R30, LOW(cookie0<<1)
+    RCALL dly50usi
+    RCALL puts
+    LDI   R31, HIGH(cookie1<<1)
+    LDI   R30, LOW(cookie1<<1)
+    RCALL dly50usi
+    RCALL newl
+    RCALL puts
+    LDI   R31, HIGH(cookie2<<1)
+    LDI   R30, LOW(cookie2<<1)
+    RCALL dly50usi
+    RCALL newl
+    RCALL puts
+    LDI   R31, HIGH(cookie3<<1)
+    LDI   R30, LOW(cookie3<<1)
+    RCALL dly50usi
+    RCALL newl
+    RCALL puts
+
+    RCALL newl
+    RCALL newl
+    LDI   R31, HIGH(errorret<<1)
+    LDI   R30, LOW(errorret<<1)
+    RCALL puts
+    RCALL dly50usi
+
+cookie_ret:
+    RCALL n_getch_start
+    CPI   R16, $0D
+    BRNE  cookie_ret
+    RJMP  init0

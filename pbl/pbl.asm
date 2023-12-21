@@ -81,6 +81,16 @@ init_trim:
          
 init1:
     RCALL pgm_start
+    LDI   R21, 3
+    RCALL newl
+
+foursec_wait:
+    RJMP  n_getch_start
+
+j_cookiejar:
+    RJMP cookiejar
+
+init2:
     SEI ;Enables interrupt
 
 main:
@@ -209,7 +219,7 @@ sec_int0:
 
 
 msg0:    .db   $0D, "DatAQMon_v1.0", $00
-msg1:    .db   "2032574",  $00
+msg1:    .db   "2032574 ",  $00
 svrmsg:  .db   $0D, "SUPERVISOR#", $00
 clkrstwmsg0: .db   $0D, "Warning: The system uptime should only be reset manually in the event of maintenance work.", $00
 clkrstwmsg1: .db   $0D, "Please press 'R' to reset the uptime clock or 'C' to return to the previous menu. ", $00
@@ -236,7 +246,7 @@ error0x21:.db   $0D, "[Error 0x21] - Invalid value. Please insert a hex value be
 error0x22:.db   $0D, "[Error 0x22] - Missing sample. Please take a sample before using the sum command.", $00
 error0x23:.db   $0D, "[Error 0x23] - Invalid trim cmd. Please reload the page before inputting a new trim level.", $00
 
-errorlcd:.db   "ERROR CHECK TERM", $00
+errorlcd:.db   " ERROR CHECK TERM", $00
 
 errorret: .db   $0D, "Press Enter to return to the previous menu. ", $00
 
@@ -248,6 +258,11 @@ nodehelp0:.db   $0D, "A - Acquire a new sample set.", $00
 nodehelp1:.db   $0D, "S - Display the sum of the sample set. Requires a sample set.", $00
 nodehelp2:.db   $0D, "T - Set a new trim level. Must be set before a sample is taken.", $00
 cmdipt:   .db   $0D, ">", $00
+
+cookie0:   .db   $0D, "Of our elaborate plans, the end", $00
+cookie1:   .db   $0D, "Of everything that stands, the end", $00
+cookie2:   .db   $0D, "No safety or surprise, the end", $00
+cookie3:   .db   $0D, "I'll never look into your eyes again", $00
 
 
 

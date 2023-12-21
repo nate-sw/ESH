@@ -41,9 +41,6 @@ ntermchk:
     ANDI  R24, $01
     BREQ  j_node_ret
     RCALL n_getch_node
-    ;IN    R24, PINB
-    ;ANDI  R24, $01
-    ;BREQ  j_node_ret
     RCALL n_outch
     CPI   R16, $41 ;ascii for 'A'
     BREQ  node
