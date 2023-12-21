@@ -14,15 +14,19 @@
 
 
 .dseg
-trimlvl: .byte 1
-
-samples: .byte 1
 
 seccnt:  .byte 1
 mincnt:  .byte 1
 hrscnt:  .byte 1
 
+
 tickcnt: .byte 1
+
+
+trimlvl: .byte 1
+
+samples: .byte 1
+
 
 
 
@@ -130,13 +134,17 @@ j_init_uart:
 j_hex2asc:
     RJMP  hex2asc
 
+
+
 systime:
     PUSH  R16
+    BRID  systime_ret
 
 secchk:
     LDS   R16, seccnt
     CPI   R16, 60
     BRSH  minutesinc
+    STS   seccnt, R16
     RJMP  systime_ret
 
 minutesinc:
@@ -203,7 +211,11 @@ sec_int0:
 msg0:    .db   $0D, "DatAQMon_v1.0", $00
 msg1:    .db   "2032574",  $00
 svrmsg:  .db   $0D, "SUPERVISOR#", $00
-
+clkrstwmsg0: .db   $0D, "Warning: The system uptime should only be reset manually in the event of maintenance work.", $00
+clkrstwmsg1: .db   $0D, "Please press 'R' to reset the uptime or 'C' to return to the previous menu. ", $00
+clkrstdmsg: .db   $0D, "System uptime reset.", $00
+clkpausemsg: .db   $0D, "System uptime is paused. Press 'P' to unpause. ", $00
+clktermmsg: .db   $0D, "System uptime: ", $00
 
 ndemsg:  .db   $0D, "NODE>", $00
 ndefmsg: .db   $0D, "New sample set captured:", $00
