@@ -36,6 +36,7 @@ node_init:
 
 
 ntermchk:
+    RCALL systime
     IN    R24, PINB
     ANDI  R24, $01
     BREQ  j_node_ret
@@ -200,11 +201,20 @@ node_end_chk:
     BREQ  j_sum
     CPI   R16, $0D ;ascii CR
     BREQ  j_node_msg
+    CPI   R16, $54 ;ascii for 'T'
+    BREQ  j_error_invalid_trim
     CPI   R16, $00
     BRNE  jj_node_invalid_entry
     BRID  node_end_chk
     RCALL systime
     RJMP  node_end_chk
+
+
+
+
+j_error_invalid_trim:
+    RCALL lcd_error_dsp
+    RJMP  error_invalid_trim
 
 j_node_msg:
     RJMP  node_msg
@@ -214,7 +224,7 @@ j_sum:
 
 jj_node_invalid_entry:
     RCALL lcd_error_dsp
-    RJMP  error_invalid_trim
+    RJMP  error_invalid_entry
 
 node_ret:
     RET
@@ -316,9 +326,18 @@ trim_msv:
     RJMP  getch_trim
 
 startsum:
+    RCALL systime
     PUSH  R16
     IN    R16, SREG
     PUSH  R16
+    PUSH  R17
+    PUSH  R18
+    CLR   R17
+    CLR   R18
+    CLR   R27
+    CLR   R28
+    LDI   R17, $0F
+    LDI   R18, $F0
     LDI   R27, HIGH(samples)
     LDI   R26, LOW(samples)
     LDI   R21, $FF ;Number of samples to be taken
@@ -328,8 +347,8 @@ startsum:
     CLR   R3
 
 sumloop:
+    RCALL systime
     LD    R0, x+
-    LD    R1, x+
     ADD   R2, R0
     ADC   R3, R1
     DEC   R21
@@ -365,6 +384,9 @@ sumdone:
     MOV   R16, R7
     OUT   UDR, R16
     RCALL dly50msi
+
+    POP   R18
+    POP   R17
     POP   R16
     OUT   SREG, R16
     POP   R16

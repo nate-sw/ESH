@@ -30,7 +30,6 @@ samples: .byte 1
 
 
 
-
 .cseg
 reset: RJMP init0
 int_0: RJMP  isr0
@@ -184,7 +183,7 @@ isr0: ;This is the interrupt for the system clock
     PUSH  R16
     LDS   R16, tickcnt
     INC   R16
-    CPI   R16, 60
+    CPI   R16, 63 ;Changed to 63 due to the 556's frequency of 63Hz
     BRSH  sec_int0
     STS   tickcnt, R16
     POP   R16

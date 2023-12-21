@@ -25,11 +25,11 @@ n_getch_node:
 
 
 n_getch_svr: ;getch used for supervisor mode when time is running.
+    RCALL systime
+    RCALL svr_time
     IN    R24, PINB
     ANDI  R24, $01
     BRNE  n_getch_ret
-    RCALL systime
-    RCALL svr_time
     in    R16, UCSRA
     ANDI  R16, $80
     BREQ  n_getch_svr

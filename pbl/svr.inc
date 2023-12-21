@@ -124,6 +124,7 @@ svr_time:
     RCALL dly2ms
     LDI   R16, ':'
     RCALL lcd_puts
+    RCALL dly2ms
     MOV   R16, R8
     RCALL seven_seg_puts
     RCALL dly2ms
