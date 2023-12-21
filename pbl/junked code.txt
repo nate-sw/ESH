@@ -96,10 +96,6 @@ h2asc_sub8:
 
 
 
-
-
-
-;Temp storage - All code below is being kept to be reworked and added back into the program later.
 svr_init:
          LDI   R31, HIGH(svrmsg<<1)
          LDI   R30, LOW(svrmsg<<1)

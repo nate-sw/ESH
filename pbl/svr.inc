@@ -6,6 +6,7 @@
 ;
 ; Changelog:
 ; 2023-12-19: File created
+; 2023-12-20: All systems functional
 
 svr_mode:
 svr_msg:
@@ -15,9 +16,12 @@ svr_msg:
     RCALL dly50usi
     LDI   R16, $0C	    
     RCALL putchar
+    
 
     RCALL lcd_line_up         
     RCALL msg_dsp
+    RCALL helptop
+    RCALL svrhelp
 
 
 
@@ -146,6 +150,7 @@ reset_menu:
     RCALL dly50usi
     RCALL newl
     RCALL puts
+    RCALL cmdinput
 
 reset_chk:
     RCALL systime
@@ -188,6 +193,7 @@ pause_start:
     RCALL newl
     RCALL newl
     RCALL puts
+    RCALL cmdinput
 pause_chk:
     IN    R24, PINB
     ANDI  R24, $01

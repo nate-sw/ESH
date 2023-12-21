@@ -11,6 +11,7 @@
 ;
 ; 2023-12-11:  Reworked program startup and LCD display code.
 ; 2023-12-18:  Node mode completed.
+; 2023-12-20:  Supervisor mode completed.
 
 
 .dseg
@@ -212,7 +213,7 @@ msg0:    .db   $0D, "DatAQMon_v1.0", $00
 msg1:    .db   "2032574",  $00
 svrmsg:  .db   $0D, "SUPERVISOR#", $00
 clkrstwmsg0: .db   $0D, "Warning: The system uptime should only be reset manually in the event of maintenance work.", $00
-clkrstwmsg1: .db   $0D, "Please press 'R' to reset the uptime or 'C' to return to the previous menu. ", $00
+clkrstwmsg1: .db   $0D, "Please press 'R' to reset the uptime clock or 'C' to return to the previous menu. ", $00
 clkrstdmsg: .db   $0D, "System uptime reset.", $00
 clkpausemsg: .db   $0D, "System uptime is paused. Press 'P' to unpause. ", $00
 clktermmsg: .db   $0D, "System uptime: ", $00
@@ -240,6 +241,17 @@ errorlcd:.db   "ERROR CHECK TERM", $00
 
 errorret: .db   $0D, "Press Enter to return to the previous menu. ", $00
 
+helptopmsg:  .db   $0D, "Command list - Must be uppercase.", $00
+svrhelp0: .db   $0D, "R - Reset system uptime clock.", $00
+svrhelp1: .db   $0D, "P - Pause system uptime clock at it's current point.", $00
+svrhelp2: .db   $0D, "T - Display the current uptime in the terminal.", $00
+nodehelp0:.db   $0D, "A - Acquire a new sample set.", $00
+nodehelp1:.db   $0D, "S - Display the sum of the sample set. Requires a sample set.", $00
+nodehelp2:.db   $0D, "T - Set a new trim level. Must be set before a sample is taken.", $00
+cmdipt:   .db   $0D, ">", $00
+
+
+
 
 
 .include "delays.inc"
@@ -249,6 +261,7 @@ errorret: .db   $0D, "Press Enter to return to the previous menu. ", $00
 .include "termcmd.inc"
 .include "errors.inc"
 .include "svr.inc"
+.include "help.inc"
 
 .include "termio.inc"   ;routines to do terminal io using AVR's USART
 .include "numio.inc" 

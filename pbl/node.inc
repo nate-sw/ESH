@@ -9,10 +9,6 @@
 ; 2023-12-18: Node function completed, all parts functional
 
 node_mode:
-    PUSH  R4
-    PUSH  R5
-    PUSH  R6
-    PUSH  R7
 node_msg:
     RCALL systime
     RCALL  clrs
@@ -21,9 +17,12 @@ node_msg:
     RCALL dly50usi
     LDI   R16, $0C	    
     RCALL putchar
+    
 
     RCALL lcd_line_up         
     RCALL msg_dsp
+    RCALL helptop
+    RCALL nodehelp
 
 
 node_init:
@@ -218,10 +217,6 @@ jj_node_invalid_entry:
     RJMP  error_invalid_trim
 
 node_ret:
-    POP  R7
-    POP  R6
-    POP  R5
-    POP  R4
     RET
 
 
